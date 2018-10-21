@@ -1,0 +1,92 @@
+var request = require('request');
+var cheerio = require('cheerio');
+var URL = require('url-parse');
+
+var START_URL = "http://www.n-sport.net/home/online_shop.html?pol[]=M";
+var SEARCH_WORD = "'name':'PUMA REBEL MID WNS'";
+var MAX_PAGES_TO_VISIT = 200;
+
+var pagesVisited = {};
+var numPagesVisited = 0;
+var pagesToVisit = [];
+var url = new URL(START_URL);
+var baseUrl = url.protocol + "//" + url.hostname;
+var fs = require("fs");
+
+pagesToVisit.push(START_URL);
+crawl();
+
+function crawl() {
+  if(numPagesVisited >= MAX_PAGES_TO_VISIT) {
+    console.log("Reached max limit of number of pages to visit.");
+    return;
+  }
+  var nextPage = pagesToVisit.pop();
+  if (nextPage in pagesVisited) {
+    // We've already visited this page, so repeat the crawl
+    crawl();
+  } else {
+    // New page we haven't visited
+    visitPage(nextPage, crawl);
+  }
+}
+
+function visitPage(url, callback) {
+  // Add page to our set
+  pagesVisited[url] = true;
+  numPagesVisited++;
+
+  // Make the request
+  console.log("Visiting page " + url);
+  request(url, function(error, response, body) {
+     // Check status code (200 is HTTP OK)
+     console.log("Status code: " + response.statusCode);
+     if(response.statusCode !== 200) {
+       callback();
+       return;
+     }
+     // Parse the document body
+     var $ = cheerio.load(body);
+     //var isWordFound = searchForWord($, SEARCH_WORD);
+     // if(isWordFound) {
+     //   console.log('Word ' + SEARCH_WORD + ' found at page ' + url);
+     // }
+     if(nSportSearch($)){
+
+     } else {
+       collectInternalLinks($);
+       // In this short program, our callback is just calling crawl()
+       callback();
+     }
+  });
+}
+
+function searchForWord($, word) {
+  var bodyText = $('html > body').text().toLowerCase();
+  return(bodyText.indexOf(word.toLowerCase()) !== -1);
+}
+
+function nSportSearch($) {
+  
+  // $('tr.athing:has(td.votelinks)').each(function( index ) {
+  //   var title = $(this).find('td.title > a').text().trim();
+  //   var link = $(this).find('td.title > a').attr('href');
+  //   fs.appendFileSync('hackernews.txt', title + '\n' + link + '\n');
+  // });
+   $('div.itemInList').each(function(index){
+    var name = $(this).find('span.opis').text().trim();
+    var image = $(this).find('span.image').find('a').find('img').attr('src');
+    var price = $(this).find('span.cena').text().trim();
+    fs.appendFileSync('NSport.txt', name + "*** " + image + "*** " + price + '\n');
+   });
+
+	 return false;
+}
+
+function collectInternalLinks($) {
+    var relativeLinks = $("a[href^='/']");
+    console.log("Found " + relativeLinks.length + " relative links on page");
+    relativeLinks.each(function() {
+        pagesToVisit.push(baseUrl + $(this).attr('href'));
+    });
+}
