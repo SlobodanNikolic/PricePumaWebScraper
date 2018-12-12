@@ -2,9 +2,8 @@ var request = require('request');
 var cheerio = require('cheerio');
 var URL = require('url-parse');
 
-var START_URL = "https://www.tike.rs";
-var SEARCH_WORD = "stemming";
-var MAX_PAGES_TO_VISIT = 1000;
+var START_URL = "https://play.google.com/store/apps/category/GAME";
+var MAX_PAGES_TO_VISIT = 100000;
 
 var pagesVisited = {};
 var numPagesVisited = 0;
